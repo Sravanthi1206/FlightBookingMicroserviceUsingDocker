@@ -1,0 +1,178 @@
+version: '3.8'
+
+services:
+
+  # ===========================
+  # CONFIG SERVER
+  # ===========================
+  config-server:
+    build: ./config-server
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - microservices
+
+  # ===========================
+  # EUREKA SERVER
+  # ===========================
+  eureka-server:
+    build: ./eureka-server
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    depends_on:
+      - config-server
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - microservices
+
+  # ===========================
+  # API GATEWAY
+  # ===========================
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - config-server
+      - eureka-server
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - microservices
+
+  # ===========================
+  # AUTH SERVICE
+  # ===========================
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    ports:
+      - "8090:8090"
+    depends_on:
+      - config-server
+      - eureka-server
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - microservices
+
+  # ===========================
+  # FLIGHT MYSQL
+  # ===========================
+  flight-db:
+    image: mysql:8
+    container_name: flight-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: flight_db
+      MYSQL_USER: flight_user
+      MYSQL_PASSWORD: flight_pwd
+    ports:
+      - "3307:3306"
+    networks:
+      - microservices
+
+  # ===========================
+  # FLIGHT SERVICE
+  # ===========================
+  flight-service:
+    build: ./flight-service
+    container_name: flight-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      - flight-db
+      - config-server
+      - eureka-server
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - microservices
+
+  # ===========================
+  # BOOKING MYSQL
+  # ===========================
+  booking-db:
+    image: mysql:8
+    container_name: booking-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: booking_db
+      MYSQL_USER: booking_user
+      MYSQL_PASSWORD: booking_pwd
+    ports:
+      - "3308:3306"
+    networks:
+      - microservices
+
+  # ===========================
+  # KAFKA + ZOOKEEPER
+  # ===========================
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    ports:
+      - "2181:2181"
+    networks:
+      - microservices
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+    depends_on:
+      - zookeeper
+    networks:
+      - microservices
+
+  # ===========================
+  # BOOKING SERVICE
+  # ===========================
+  booking-service:
+    build: ./booking-service
+    container_name: booking-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      - booking-db
+      - kafka
+      - config-server
+      - eureka-server
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - microservices
+
+  # ===========================
+  # EMAIL SERVICE
+  # ===========================
+  email-service:
+    build: ./email-service
+    container_name: email-service
+    ports:
+      - "8085:8085"
+    depends_on:
+      - kafka
+      - config-server
+      - eureka-server
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - microservices
+
+networks:
+  microservices:
+    driver: bridge
