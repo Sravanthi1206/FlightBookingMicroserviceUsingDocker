@@ -28,8 +28,7 @@ The architecture consists of the following services:
 ### Authentication
 JWT authentication is implemented in Auth-Service.
 
-Header format:
-Authorization: Bearer <token>
+
 
 ### Authorization
 - USER role: Can perform booking operations
