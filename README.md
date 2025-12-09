@@ -20,7 +20,6 @@ The architecture consists of the following services:
 - Email-Service – Kafka consumer that sends booking confirmation emails
 - Kafka Cluster – Responsible for asynchronous event communication
 
-Architecture Diagram and screenshots referenced from Architecture Diagram.pdf.
 
 ---
 
